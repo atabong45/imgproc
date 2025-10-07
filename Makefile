@@ -15,7 +15,7 @@ CC = gcc
 # -g : Inclut les informations de débogage (pour gdb).
 # -std=c99 : Spécifie la norme du langage C.
 # -Iinclude : Dit au compilateur de chercher les fichiers .h dans le dossier 'include'.
-CFLAGS = -Wall -Wextra -g -std=c99 -Iinclude
+CFLAGS = -Wall -Wextra -g -std=gnu99 -Iinclude 
 
 # Répertoire des sources
 SRC_DIR = src
@@ -35,7 +35,7 @@ all: $(TARGET_EXEC)
 # Règle pour lier les fichiers objets et créer l'exécutable final
 $(TARGET_EXEC): $(OBJS)
 	@mkdir -p $(BIN_DIR) # Crée le dossier bin s'il n'existe pas
-	$(CC) $(OBJS) -o $@
+	$(CC) $(OBJS) -o $@ -lm
 
 # Règle pour compiler les fichiers sources .c en fichiers objets .o
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
@@ -50,3 +50,4 @@ clean:
 # Règle pour exécuter le programme
 run: all
 	./$(TARGET_EXEC)
+
