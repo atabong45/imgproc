@@ -24,6 +24,11 @@ typedef struct {
     bool apply_sobel;
     bool apply_sharpen;
     bool apply_equalization;
+    int median_kernel_size;
+    bool test_fft;
+    const char *fft_spectrum_path;
+    int fft_lowpass_radius;  
+    int fft_highpass_radius;
 } Arguments;
 
 /**
@@ -36,5 +41,9 @@ typedef struct {
  *         sont manquants.
  */
 Arguments parse_args(int argc, char *argv[]);
+
+
+
+
 
 #endif // PARSER_H

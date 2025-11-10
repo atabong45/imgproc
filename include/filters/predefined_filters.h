@@ -41,4 +41,16 @@ Image *apply_sobel_filter(const Image *src);
  */
 Image *apply_sharpen_filter(const Image *src);
 
+/**
+ * @brief Applique un filtre médian à une image.
+ *
+ * Filtre non-linéaire très efficace pour supprimer le bruit de type "poivre et sel".
+ * Il remplace chaque pixel par la valeur médiane de son voisinage.
+ *
+ * @param src L'image source (ne sera pas modifiée).
+ * @param kernel_size La taille du voisinage (ex: 3 pour 3x3). Doit être un nombre impair.
+ * @return Une nouvelle image filtrée, ou NULL en cas d'erreur.
+ */
+Image *apply_median_filter(const Image *src, int kernel_size);
+
 #endif // PREDEFINED_FILTERS_H

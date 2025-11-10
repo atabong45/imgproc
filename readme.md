@@ -37,20 +37,24 @@ Les formats d'image supportés pour l'instant sont le **PPM (couleur)** et le **
 
 ### ✅ Fonctionnalités Implémentées
 
-| Catégorie                  | Fonctionnalité                          | Description                                                                                                                         |
-| -------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **I/O**                    | Lecture/Écriture PPM/PGM                | Chargement et sauvegarde d'images aux formats PGM (P5, binaire) et PPM (P6, binaire).                                               |
-| **Analyse**                | Calcul de Luminance                     | Calcule la valeur moyenne des pixels de l'image (intensité lumineuse globale).                                                      |
-| **Analyse**                | Calcul de Contraste                     | Calcule le contraste de l'image en se basant sur la variation entre les niveaux de gris minimum et maximum.                         |
-| **Analyse**                | Génération d'Histogramme                | Calcule la distribution des niveaux de gris et peut générer une image PGM représentant visuellement cet histogramme.                |
-| **Transformations**        | Transformation Linéaire                 | Modifie la luminosité et le contraste en appliquant une fonction `I' = a*I + b` à chaque pixel.                                     |
-| **Transformations**        | Transformation Linéaire avec Saturation | Augmente le contraste en étirant une plage de niveaux de gris spécifiée sur toute la dynamique (0-255).                             |
-| **Amélioration**           | Égalisation d'Histogramme               | Transformation non-linéaire qui redistribue les intensités pour maximiser le contraste global. Très efficace sur les images ternes. |
-| **Filtrage (Convolution)** | Moteur de Convolution Générique         | Un moteur robuste capable d'appliquer n'importe quel noyau de convolution (masque) à une image. Gère les bords par réplication.     |
-| **Filtrage (Convolution)** | Flou Moyenneur (Box Blur)               | Lisse l'image et réduit le bruit en remplaçant chaque pixel par la moyenne de ses voisins. La force du flou est paramétrable.       |
-| **Filtrage (Convolution)** | Flou Gaussien                           | Applique un flou plus naturel et de meilleure qualité que le flou moyenneur, en donnant plus de poids aux pixels centraux.          |
-| **Filtrage (Convolution)** | Détection de Contours (Sobel)           | Met en évidence les contours de l'image en calculant le gradient d'intensité.                                                       |
-| **Filtrage (Convolution)** | Rehaussement de Netteté (Sharpen)       | Augmente la netteté perçue de l'image en assombrissant les bords des contours, les rendant plus "tranchés".                         |
+| Catégorie                   | Fonctionnalité                          | Description                                                                                                                            |
+| --------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **I/O**                     | Lecture/Écriture PPM/PGM                | Chargement et sauvegarde d'images aux formats PGM (P5, binaire) et PPM (P6, binaire).                                                  |
+| **Analyse**                 | Calcul de Luminance                     | Calcule la valeur moyenne des pixels de l'image (intensité lumineuse globale).                                                         |
+| **Analyse**                 | Calcul de Contraste                     | Calcule le contraste de l'image en se basant sur la variation entre les niveaux de gris minimum et maximum.                            |
+| **Analyse**                 | Génération d'Histogramme                | Calcule la distribution des niveaux de gris et peut générer une image PGM représentant visuellement cet histogramme.                   |
+| **Transformations**         | Transformation Linéaire                 | Modifie la luminosité et le contraste en appliquant une fonction `I' = a*I + b` à chaque pixel.                                        |
+| **Transformations**         | Transformation Linéaire avec Saturation | Augmente le contraste en étirant une plage de niveaux de gris spécifiée sur toute la dynamique (0-255).                                |
+| **Amélioration**            | Égalisation d'Histogramme               | Transformation non-linéaire qui redistribue les intensités pour maximiser le contraste global. Très efficace sur les images ternes.    |
+| **Filtrage (Convolution)**  | Moteur de Convolution Générique         | Un moteur robuste capable d'appliquer n'importe quel noyau de convolution (masque) à une image. Gère les bords par réplication.        |
+| **Filtrage (Convolution)**  | Flou Moyenneur (Box Blur)               | Lisse l'image et réduit le bruit en remplaçant chaque pixel par la moyenne de ses voisins. La force du flou est paramétrable.          |
+| **Filtrage (Convolution)**  | Flou Gaussien                           | Applique un flou plus naturel et de meilleure qualité que le flou moyenneur, en donnant plus de poids aux pixels centraux.             |
+| **Filtrage (Convolution)**  | Détection de Contours (Sobel)           | Met en évidence les contours de l'image en calculant le gradient d'intensité.                                                          |
+| **Filtrage (Convolution)**  | Rehaussement de Netteté (Sharpen)       | Augmente la netteté perçue de l'image en assombrissant les bords des contours, les rendant plus "tranchés".                            |
+| **Filtrage (Non-linéaire)** | Filtre Médian                           | Supprime efficacement le bruit "poivre et sel" en préservant les contours, en remplaçant chaque pixel par la médiane de son voisinage. |
+| **Domaine Fréquentiel**     | Visualisation du Spectre de Fourier     | Calcule la Transformée de Fourier 2D et génère une image de son spectre de magnitude, avec les basses fréquences centrées.             |
+| **Domaine Fréquentiel**     | Filtre Passe-Bas Fréquentiel            | Applique un flou puissant en supprimant les hautes fréquences de l'image via une multiplication dans le domaine de Fourier.            |
+| **Domaine Fréquentiel**     | Filtre Passe-Haut Fréquentiel           | Isole les contours et les détails de l'image en supprimant les basses fréquences.                                                      |
 
 ### 🚀 Fonctionnalités Prévues
 
@@ -165,6 +169,28 @@ Ces options affichent des informations dans la console ou génèrent des fichier
 - `--sharpen` : Applique un filtre de rehaussement de netteté. Il rend les détails et les textures plus "tranchés".
   ```bash
   ./bin/imgproc --input portrait.pgm --output portrait_net.pgm --sharpen
+  ```
+- `--median <taille>` : Applique un filtre médian, très efficace contre le bruit de type "poivre et sel". `<taille>` doit être un entier impair (typiquement 3 ou 5).
+  ```bash
+  ./bin/imgproc --input image_bruitee.pgm --output image_propre.pgm --median 3
+  ```
+
+### Analyse dans le Domaine Fréquentiel
+
+- `--fft-spectrum <path_spectrum.pgm>` : Calcule la Transformée de Fourier de l'image et sauvegarde une représentation visuelle de son spectre dans un fichier PGM.
+  ```bash
+  # Générer le spectre de Fourier de l'image
+  ./bin/imgproc --input image.pgm --output out.pgm --fft-spectrum spectre.pgm
+  ```
+- `--fft-lowpass <rayon>` : Applique un filtre passe-bas idéal (flou). `<rayon>` définit la taille des basses fréquences à conserver. Une petite valeur (ex: 20) produit un flou très fort.
+
+  ```bash
+  ./bin/imgproc --input image.pgm --output flou.pgm --fft-lowpass 30
+  ```
+
+- `--fft-highpass <rayon>` : Applique un filtre passe-haut idéal (détection de contours). `<rayon>` définit la taille des basses fréquences à supprimer. Une petite valeur (ex: 10) conserve beaucoup de détails.
+  ```bash
+  ./bin/imgproc --input image.pgm --output contours.pgm --fft-highpass 15
   ```
 
 ### Amélioration d'Histogramme

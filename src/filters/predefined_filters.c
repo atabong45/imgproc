@@ -6,6 +6,15 @@
 #include <string.h> 
 
 
+// Fonction de comparaison requise par qsort pour trier des uint8_t.
+static int compare_uint8(const void *a, const void *b) {
+    uint8_t val1 = *(const uint8_t *)a;
+    uint8_t val2 = *(const uint8_t *)b;
+    if (val1 < val2) return -1;
+    if (val1 > val2) return 1;
+    return 0;
+}
+
 Image *apply_box_blur(const Image *src, int kernel_size) {
     if (kernel_size % 2 == 0) {
         fprintf(stderr, "apply_box_blur: La taille du noyau doit être impaire.\n");
@@ -205,3 +214,64 @@ Image *apply_sharpen_filter(const Image *src) {
 
     return result;
 }
+
+
+
+Image *apply_median_filter(const Image *src, int kernel_size) {
+    if (!src || !src->data || src->channels != 1) {
+        fprintf(stderr, "apply_median_filter: Image invalide ou non supportée.\n");
+        return NULL;
+    }
+    if (kernel_size % 2 == 0) {
+        fprintf(stderr, "apply_median_filter: La taille du noyau doit être impaire.\n");
+        return NULL;
+    }
+
+    Image *dest = createImage(src->width, src->height, src->channels);
+    if (!dest) return NULL;
+
+    int kernel_center = kernel_size / 2;
+    int num_neighbors = kernel_size * kernel_size;
+    int median_index = num_neighbors / 2;
+
+    // Allouer un buffer pour stocker les valeurs du voisinage
+    uint8_t *neighborhood = (uint8_t *)malloc(num_neighbors * sizeof(uint8_t));
+    if (!neighborhood) {
+        perror("apply_median_filter: Impossible d'allouer le buffer du voisinage");
+        freeImage(dest);
+        return NULL;
+    }
+
+    // Parcourir chaque pixel de l'image
+    for (int y = 0; y < src->height; y++) {
+        for (int x = 0; x < src->width; x++) {
+            
+            int neighbor_idx = 0;
+            // Collecter les valeurs des pixels du voisinage
+            for (int ky = 0; ky < kernel_size; ky++) {
+                for (int kx = 0; kx < kernel_size; kx++) {
+                    int ix = x + (kx - kernel_center);
+                    int iy = y + (ky - kernel_center);
+
+                    // Gérer les bords par réplication (clamp to edge)
+                    if (ix < 0) ix = 0;
+                    if (ix >= src->width) ix = src->width - 1;
+                    if (iy < 0) iy = 0;
+                    if (iy >= src->height) iy = src->height - 1;
+
+                    neighborhood[neighbor_idx++] = src->data[iy * src->width + ix];
+                }
+            }
+
+            // Trier le voisinage pour trouver la médiane
+            qsort(neighborhood, num_neighbors, sizeof(uint8_t), compare_uint8);
+            
+            // Assigner la valeur médiane au pixel de destination
+            dest->data[y * src->width + x] = neighborhood[median_index];
+        }
+    }
+
+    free(neighborhood);
+    return dest;
+}
+

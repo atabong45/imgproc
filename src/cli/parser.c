@@ -16,6 +16,11 @@ Arguments parse_args(int argc, char *argv[]) {
     args.apply_sobel = false;
     args.apply_sharpen = false;
     args.apply_equalization = false;
+    args.median_kernel_size = 0;
+    args.test_fft = false;
+    args.fft_spectrum_path = NULL;
+    args.fft_lowpass_radius = 0; 
+    args.fft_highpass_radius = 0;
 
     // 2. Boucle sur tous les arguments de la ligne de commande (sauf le nom du programme)
     for (int i = 1; i < argc; i++) {
@@ -101,6 +106,47 @@ Arguments parse_args(int argc, char *argv[]) {
         }
         else if (strcmp(argv[i], "--equalize") == 0) {
             args.apply_equalization = true;
+        }
+        else if (strcmp(argv[i], "--equalize") == 0) {
+            args.apply_equalization = true;
+        }
+        else if (strcmp(argv[i], "--median") == 0) {
+            if (i + 1 < argc) {
+                args.median_kernel_size = atoi(argv[++i]);
+            } else {
+                fprintf(stderr, "Erreur: L'option --median nécessite une taille de noyau (ex: 3).\n");
+                exit(1);
+            }
+        }
+        else if (strcmp(argv[i], "--test-fft") == 0) {
+            args.test_fft = true;
+        }
+        else if (strcmp(argv[i], "--test-fft") == 0) {
+            args.test_fft = true;
+        }
+        else if (strcmp(argv[i], "--fft-spectrum") == 0) {
+            if (i + 1 < argc) {
+                args.fft_spectrum_path = argv[++i];
+            } else {
+                fprintf(stderr, "Erreur: L'option --fft-spectrum nécessite un chemin de fichier de sortie.\n");
+                exit(1);
+            }
+        }
+        else if (strcmp(argv[i], "--fft-lowpass") == 0) {
+            if (i + 1 < argc) {
+                args.fft_lowpass_radius = atoi(argv[++i]);
+            } else {
+                fprintf(stderr, "Erreur: L'option --fft-lowpass nécessite un rayon.\n");
+                exit(1);
+            }
+        }
+        else if (strcmp(argv[i], "--fft-highpass") == 0) {
+            if (i + 1 < argc) {
+                args.fft_highpass_radius = atoi(argv[++i]);
+            } else {
+                fprintf(stderr, "Erreur: L'option --fft-highpass nécessite un rayon.\n");
+                exit(1);
+            }
         }
 
 

@@ -9,6 +9,7 @@
 #include "filters/predefined_filters.h"
 #include "filters/histogram_equalization.h"
 #include "cli/parser.h"
+#include "fft/fft.h"
 
 int main(int argc, char *argv[]) {
 
@@ -104,6 +105,84 @@ int main(int argc, char *argv[]) {
             img = equalized_img;  // Pointe vers la nouvelle
         }
     }
+    if (args.median_kernel_size > 0) {
+        printf("Application du filtre médian %dx%d...\n", args.median_kernel_size, args.median_kernel_size);
+        Image *median_img = apply_median_filter(img, args.median_kernel_size);
+        if (median_img) {
+            freeImage(img);       // Libère l'ancienne image
+            img = median_img;     // Pointe vers la nouvelle
+        }
+    }
+    if (args.test_fft) {
+        printf("Test du module FFT...\n");
+        int fft_w, fft_h;
+        Complex **fft_result = fft2d(img, &fft_w, &fft_h);
+        if (fft_result) {
+            printf("FFT calculée avec succès (dimensions : %dx%d).\n", fft_w, fft_h);
+            
+            // Test de l'inverse
+            Image *inversed_img = ifft2d(fft_result, fft_w, fft_h);
+            if(inversed_img) {
+                printf("FFT Inverse calculée avec succès.\n");
+                // Sauvegarder pour vérifier si l'image est revenue à l'original (à peu près)
+                savePNM(inversed_img, "test_ifft.pgm");
+                freeImage(inversed_img);
+            }
+
+            free_fft_data(fft_result, fft_h);
+        } else {
+            fprintf(stderr, "Le calcul de la FFT a échoué.\n");
+        }
+    }
+    if (args.fft_spectrum_path) {
+        printf("Calcul du spectre de Fourier...\n");
+        int fft_w, fft_h;
+        Complex **fft_result = fft2d(img, &fft_w, &fft_h);
+        if (fft_result) {
+            Image *spectrum = create_spectrum_image(fft_result, fft_w, fft_h);
+            if (spectrum) {
+                if (savePNM(spectrum, args.fft_spectrum_path) == 0) {
+                    printf("Spectre de Fourier sauvegardé dans '%s'.\n", args.fft_spectrum_path);
+                }
+                freeImage(spectrum);
+            }
+            free_fft_data(fft_result, fft_h);
+        }
+    }
+
+    // --- Pipeline de Filtrage Fréquentiel ---
+    if (args.fft_lowpass_radius > 0 || args.fft_highpass_radius > 0) {
+    printf("Début du filtrage fréquentiel...\n");
+    
+    // Étape 1: Appliquer la FFT
+    int fft_w, fft_h;
+    Complex **fft_result = fft2d(img, &fft_w, &fft_h);
+    
+    if (fft_result) {
+        // Étape 2: Appliquer les filtres demandés
+        if (args.fft_lowpass_radius > 0) {
+            printf("Application du filtre passe-bas fréquentiel (rayon=%d)...\n", args.fft_lowpass_radius);
+            fft_lowpass_filter(fft_result, fft_w, fft_h, args.fft_lowpass_radius);
+        }
+        if (args.fft_highpass_radius > 0) {
+            printf("Application du filtre passe-haut fréquentiel (rayon=%d)...\n", args.fft_highpass_radius);
+            fft_highpass_filter(fft_result, fft_w, fft_h, args.fft_highpass_radius);
+        }
+
+        // Étape 3: Appliquer la FFT Inverse pour revenir au domaine spatial
+        Image *filtered_img = ifft2d(fft_result, fft_w, fft_h);
+        if (filtered_img) {
+            // Remplacer l'image originale par le résultat du filtrage
+            freeImage(img);
+            img = filtered_img;
+        }
+
+        // Nettoyer la mémoire des données FFT
+        free_fft_data(fft_result, fft_h);
+    }
+}
+
+
 
     // -------------------------------------------------------
 
