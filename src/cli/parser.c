@@ -43,7 +43,7 @@ Arguments parse_args(int argc, char *argv[]) {
     args.fft_emphasis_high = 1.0;
     args.hough_threshold = 0;
     args.use_otsu = false;
-    args.region_tolerance = 0;
+    args.region_tolerance = -1;
     args.seed_x = 0;
     args.seed_y = 0;
 

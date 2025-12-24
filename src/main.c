@@ -364,9 +364,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // ============================================================
+   // ============================================================
     // ÉTAPE 11: TRANSFORMÉE DE HOUGH
     // ============================================================
+    // Note: Hough attend normalement une image binaire (contours). 
+    // Si l'utilisateur a fait --sobel --threshold avant, c'est parfait.
     
     if (args.hough_threshold > 0) {
         printf("Application de la Transformée de Hough (Seuil=%d)...\n", args.hough_threshold);
@@ -380,43 +382,40 @@ int main(int argc, char *argv[]) {
                 freeImage(acc_view);
                 printf("  -> Image de l'accumulateur sauvegardée dans 'hough_accumulator.pgm'\n");
             }
-            
             freeImage(img);
             img = lines_img;
         }
     }
 
     // ============================================================
-    // ÉTAPE 12: SEUILLAGE (à appliquer en dernier)
+    // ÉTAPE 12: SEGMENTATION (Seuillage / Régions)
     // ============================================================
     
-    if (args.threshold_value != -1) {
-        printf("Application du seuillage (seuil=%d)...\n", args.threshold_value);
-        apply_threshold(img, (uint8_t)args.threshold_value);
+    // A. Croissance de régions
+    if (args.region_tolerance >= 0) {
+        printf("Application de la croissance de région (Graine: %d,%d | Tol: %d)...\n", 
+               args.seed_x, args.seed_y, args.region_tolerance);
+        Image *region_mask = region_growing(img, args.seed_x, args.seed_y, args.region_tolerance);
+        if (region_mask) {
+            freeImage(img);
+            img = region_mask; // L'image de sortie devient le masque binaire
+        }
     }
-    // ...
-    // Gestion du seuillage (Manuel OU Automatique)
-    if (args.use_otsu) {
-        // Calculer le seuil automatiquement
+    // B. Seuillage (Automatique Otsu OU Manuel)
+    else if (args.use_otsu) {
+        printf("Calcul et application du seuillage automatique (Otsu)...\n");
         int otsu_val = calculate_otsu_threshold(img);
         apply_threshold(img, (uint8_t)otsu_val);
     } 
     else if (args.threshold_value != -1) {
-        // Seuil manuel
+        printf("Application du seuillage manuel (seuil=%d)...\n", args.threshold_value);
         apply_threshold(img, (uint8_t)args.threshold_value);
     }
-    // ...
-    // ...
-    if (args.region_tolerance >= 0) {
-        printf("Application de la croissance de région...\n");
-        Image *region_mask = region_growing(img, args.seed_x, args.seed_y, args.region_tolerance);
-        if (region_mask) {
-            freeImage(img);
-            img = region_mask; // L'image de sortie sera le masque binaire
-        }
-    }
-    // ...
-    // ... À la suite des filtres ...
+
+    // ============================================================
+    // ÉTAPE 13: MORPHOLOGIE MATHÉMATIQUE
+    // ============================================================
+    // Ces opérations sont plus efficaces sur des images binaires (après l'étape 12)
 
     if (args.morph_erode_size > 0) {
         printf("Application Érosion (taille %d)...\n", args.morph_erode_size);
@@ -444,25 +443,8 @@ int main(int argc, char *argv[]) {
         if (res) { freeImage(img); img = res; }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     // ============================================================
-    // ÉTAPE 13: SAUVEGARDE DE L'IMAGE FINALE
+    // ÉTAPE 14: SAUVEGARDE FINALE
     // ============================================================
     
     if (savePNM(img, args.output_path) != 0) {
@@ -471,12 +453,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    printf("Image sauvegardée avec succès dans '%s'.\n", args.output_path);
-
-    // ============================================================
-    // ÉTAPE 14: LIBÉRATION DE LA MÉMOIRE
-    // ============================================================
-    
+    printf("Image finale sauvegardée avec succès dans '%s'.\n", args.output_path);
     freeImage(img);
 
     printf("Opération terminée avec succès.\n");
