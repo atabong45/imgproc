@@ -92,3 +92,46 @@ Image *equalize_histogram(const Image *src) {
     
     return dest;
 }
+
+Image *equalize_histogram_local(const Image *src, int window_size) {
+    if (!src || src->channels != 1) return NULL;
+    Image *dest = createImage(src->width, src->height, 1);
+    if (!dest) return NULL;
+
+    int half_w = window_size / 2;
+
+    for (int y = 0; y < src->height; y++) {
+        for (int x = 0; x < src->width; x++) {
+            
+            // Calculer l'histogramme UNIQUEMENT pour la fenêtre locale
+            int local_hist[256] = {0};
+            int pixel_count = 0;
+
+            for (int wy = -half_w; wy <= half_w; wy++) {
+                for (int wx = -half_w; wx <= half_w; wx++) {
+                    int nx = x + wx;
+                    int ny = y + wy;
+
+                    // Si on est dans l'image
+                    if (nx >= 0 && nx < src->width && ny >= 0 && ny < src->height) {
+                        local_hist[src->data[ny * src->width + nx]]++;
+                        pixel_count++;
+                    }
+                }
+            }
+
+            // Calculer la CDF juste pour la valeur du pixel central
+            int center_val = src->data[y * src->width + x];
+            int cdf_val = 0;
+            for (int k = 0; k <= center_val; k++) {
+                cdf_val += local_hist[k];
+            }
+
+            // Normaliser (Formule d'égalisation)
+            // Valeur = (CDF(v) / TotalPixelsFenêtre) * 255
+            dest->data[y * src->width + x] = (uint8_t)((cdf_val * 255) / pixel_count);
+        }
+    }
+    printf("Égalisation locale appliquée (fenêtre %d).\n", window_size);
+    return dest;
+}

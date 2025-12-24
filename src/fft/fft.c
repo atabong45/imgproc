@@ -3,6 +3,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "fft/fft.h"
+#include <string.h>
+
+
+
+
+// Ajouter cette fonction de comparaison pour qsort (si pas déjà dans ce fichier)
+static int compare_doubles(const void *a, const void *b) {
+    double val1 = *(const double *)a;
+    double val2 = *(const double *)b;
+    if (val1 < val2) return -1;
+    if (val1 > val2) return 1;
+    return 0;
+}
 
 // --- Partie 1 : Implémentation de la FFT 1D (Algorithme de Cooley-Tukey) ---
 
@@ -244,6 +257,143 @@ void fft_highpass_filter(Complex **fft_data, int width, int height, int radius) 
                 fft_data[y][x].real = 0;
                 fft_data[y][x].imag = 0;
             }
+        }
+    }
+}
+
+// Fonction pour appliquer UN filtre notch (et son symétrique)
+void fft_notch_filter(Complex **fft_data, int width, int height, int u, int v, int radius) {
+    double radius_squared = (double)radius * radius;
+    int center_x = width / 2;
+    int center_y = height / 2;
+
+    // Coordonnées du bruit (u,v) et de son symétrique (-u,-v) par rapport au centre
+    int u1 = u;
+    int v1 = v;
+    int u2 = -u;
+    int v2 = -v;
+
+    for (int y_shifted = 0; y_shifted < height; y_shifted++) {
+        for (int x_shifted = 0; x_shifted < width; x_shifted++) {
+            // Coordonnées par rapport au centre du spectre
+            int current_u = x_shifted - center_x;
+            int current_v = y_shifted - center_y;
+            
+            // Calcul des distances aux deux points de bruit
+            double d1_sq = pow(current_u - u1, 2) + pow(current_v - v1, 2);
+            double d2_sq = pow(current_u - u2, 2) + pow(current_v - v2, 2);
+
+            if (d1_sq <= radius_squared || d2_sq <= radius_squared) {
+                // Traduire les coordonnées décalées en coordonnées de la matrice réelle
+                int y_actual = (y_shifted + center_y) % height;
+                int x_actual = (x_shifted + center_x) % width;
+                
+                fft_data[y_actual][x_actual].real = 0;
+                fft_data[y_actual][x_actual].imag = 0;
+            }
+        }
+    }
+}
+
+
+// Ajouter la nouvelle fonction à la fin de fft.c
+int fft_auto_notch_filter(Complex **fft_data, int width, int height, double threshold_factor, int radius) {
+    long total_pixels = (long)width * height;
+    double *magnitudes = malloc(total_pixels * sizeof(double));
+    if (!magnitudes) return 0;
+
+    int center_x = width / 2;
+    int center_y = height / 2;
+
+    // 1. Calculer le spectre de magnitude (non logarithmique, non décalé)
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            magnitudes[y * width + x] = complex_magnitude(fft_data[y][x]);
+        }
+    }
+    
+    // 2. Trouver une valeur de seuil robuste basée sur la médiane
+    // La médiane est moins sensible aux valeurs extrêmes (les pics) que la moyenne.
+    double *sorted_magnitudes = malloc(total_pixels * sizeof(double));
+    if (!sorted_magnitudes) {
+        free(magnitudes);
+        return 0;
+    }
+    memcpy(sorted_magnitudes, magnitudes, total_pixels * sizeof(double));
+    qsort(sorted_magnitudes, total_pixels, sizeof(double), compare_doubles);
+    
+    double median_magnitude = sorted_magnitudes[total_pixels / 2];
+    double noise_threshold = median_magnitude * threshold_factor;
+
+    free(sorted_magnitudes); // Plus besoin de la version triée
+
+    printf("Détection auto: Médiane=%.2f, Seuil de bruit=%.2f\n", median_magnitude, noise_threshold);
+    
+    int detected_peaks_count = 0;
+    NotchFilter detected_notches[20]; // Stocker les pics trouvés
+
+    // 3. Détecter les pics qui dépassent le seuil
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            // Ignorer la zone centrale (basses fréquences)
+            int dx = x < center_x ? x : width - x;
+            int dy = y < center_y ? y : height - y;
+            // On ignore un rayon de 5% autour du centre pour ne pas toucher à l'image
+            if (sqrt(dx*dx + dy*dy) < (width * 0.05)) {
+                continue;
+            }
+
+            if (magnitudes[y * width + x] > noise_threshold) {
+                if (detected_peaks_count < 20) {
+                    // Convertir les coordonnées de la matrice en coordonnées relatives au centre
+                    int u = (x + center_x) % width - center_x;
+                    int v = (y + center_y) % height - center_y;
+                    
+                    // Ajouter le pic à notre liste
+                    detected_notches[detected_peaks_count].u = u;
+                    detected_notches[detected_peaks_count].v = v;
+                    detected_notches[detected_peaks_count].radius = radius;
+                    detected_peaks_count++;
+                }
+            }
+        }
+    }
+    
+    free(magnitudes);
+
+    // 4. Appliquer les filtres notch pour chaque pic détecté
+    if (detected_peaks_count > 0) {
+        printf("%d pic(s) de bruit détecté(s). Application des filtres...\n", detected_peaks_count);
+        // On applique le filtre pour chaque pic. La symétrie est déjà gérée dans fft_notch_filter.
+        // On ne parcourt que la moitié des pics, car chaque appel traite une paire symétrique.
+        for (int i = 0; i < detected_peaks_count; i++) {
+             NotchFilter n = detected_notches[i];
+             printf("  - Suppression du bruit autour de (%d, %d)\n", n.u, n.v);
+             fft_notch_filter(fft_data, width, height, n.u, n.v, n.radius);
+        }
+    }
+
+    // On retourne le nombre de paires (un pic et son symétrique)
+    return detected_peaks_count / 2;
+}
+
+void fft_emphasis_filter(Complex **fft_data, int width, int height, int radius, double k_low, double k_high) {
+    int center_x = width / 2;
+    int center_y = height / 2;
+    double radius_squared = (double)radius * radius;
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            // Calcul distance au centre
+            int dx = x < center_x ? x : width - x;
+            int dy = y < center_y ? y : height - y;
+            double dist_sq = (double)(dx * dx + dy * dy);
+
+            double factor = (dist_sq <= radius_squared) ? k_low : k_high;
+
+            // Multiplication par le facteur (Partie Réelle et Imaginaire)
+            fft_data[y][x].real *= factor;
+            fft_data[y][x].imag *= factor;
         }
     }
 }

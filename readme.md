@@ -8,70 +8,49 @@
 
 1.  [Introduction](#-introduction)
 2.  [Fonctionnalités](#-fonctionnalités)
-    - [Fonctionnalités Implémentées](#-fonctionnalités-implémentées)
-    - [Fonctionnalités Prévues](#-fonctionnalités-prévues)
 3.  [Compilation et Installation](#-compilation-et-installation)
 4.  [Guide d'Utilisation](#-guide-dutilisation)
-    - [Syntaxe Générale](#syntaxe-générale)
-    - [Analyse d'Image](#analyse-dimage)
-    - [Transformations Ponctuelles](#transformations-ponctuelles-correction-des-couleurs-et-du-contraste)
-    - [Filtrage par Convolution](#filtrage-par-convolution-flou-netteté-détection-de-contours)
-    - [Amélioration d'Histogramme](#amélioration-dhistogramme)
-    - [Chaînage des Opérations](#chaînage-des-opérations)
+    - [1. Analyse d'Image](#1-analyse-dimage)
+    - [2. Transformations Ponctuelles](#2-transformations-ponctuelles)
+    - [3. Géométrie et Interpolation](#3-géométrie-et-interpolation)
+    - [4. Filtrage Spatial (Convolution)](#4-filtrage-spatial-convolution)
+    - [5. Domaine Fréquentiel (FFT)](#5-domaine-fréquentiel-fft)
+    - [6. Détection de Contours et Hough](#6-détection-de-contours-et-hough)
+    - [7. Segmentation](#7-segmentation)
+    - [8. Morphologie Mathématique](#8-morphologie-mathématique)
+    - [9. Opérations Multi-images](#9-opérations-multi-images)
 5.  [Architecture du Projet](#-architecture-du-projet)
-6.  [Comment Contribuer](#-comment-contribuer)
 
 ---
 
 ## 🌟 Introduction
 
-**imgproc** est un programme en ligne de commande (CLI) développé en C pur pour le traitement d'images. Conçu pour être léger, performant et hautement modulaire, il offre une large gamme d'opérations allant de l'analyse d'image aux transformations géométriques, en passant par le filtrage spatial avancé via la convolution.
+**imgproc** est un programme en ligne de commande (CLI) développé en C pur pour le traitement d'images. Conçu pour être léger, performant et hautement modulaire, il implémente "from scratch" les algorithmes fondamentaux de la vision par ordinateur, allant de l'analyse d'histogramme à la segmentation, en passant par le filtrage fréquentiel et la morphologie mathématique.
 
-Ce projet met l'accent sur la clarté du code, la robustesse des algorithmes et une gestion rigoureuse de la mémoire. Il ne repose sur aucune bibliothèque de traitement d'image externe, tous les algorithmes étant implémentés "from scratch".
-
-Les formats d'image supportés pour l'instant sont le **PPM (couleur)** et le **PGM (niveaux de gris)**, en version binaire (P6/P5).
+Les formats d'image supportés sont le **PPM (couleur)** et le **PGM (niveaux de gris)**, en version binaire (P6/P5).
 
 ---
 
 ## ✨ Fonctionnalités
 
-### ✅ Fonctionnalités Implémentées
-
-| Catégorie                   | Fonctionnalité                          | Description                                                                                                                            |
-| --------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **I/O**                     | Lecture/Écriture PPM/PGM                | Chargement et sauvegarde d'images aux formats PGM (P5, binaire) et PPM (P6, binaire).                                                  |
-| **Analyse**                 | Calcul de Luminance                     | Calcule la valeur moyenne des pixels de l'image (intensité lumineuse globale).                                                         |
-| **Analyse**                 | Calcul de Contraste                     | Calcule le contraste de l'image en se basant sur la variation entre les niveaux de gris minimum et maximum.                            |
-| **Analyse**                 | Génération d'Histogramme                | Calcule la distribution des niveaux de gris et peut générer une image PGM représentant visuellement cet histogramme.                   |
-| **Transformations**         | Transformation Linéaire                 | Modifie la luminosité et le contraste en appliquant une fonction `I' = a*I + b` à chaque pixel.                                        |
-| **Transformations**         | Transformation Linéaire avec Saturation | Augmente le contraste en étirant une plage de niveaux de gris spécifiée sur toute la dynamique (0-255).                                |
-| **Amélioration**            | Égalisation d'Histogramme               | Transformation non-linéaire qui redistribue les intensités pour maximiser le contraste global. Très efficace sur les images ternes.    |
-| **Filtrage (Convolution)**  | Moteur de Convolution Générique         | Un moteur robuste capable d'appliquer n'importe quel noyau de convolution (masque) à une image. Gère les bords par réplication.        |
-| **Filtrage (Convolution)**  | Flou Moyenneur (Box Blur)               | Lisse l'image et réduit le bruit en remplaçant chaque pixel par la moyenne de ses voisins. La force du flou est paramétrable.          |
-| **Filtrage (Convolution)**  | Flou Gaussien                           | Applique un flou plus naturel et de meilleure qualité que le flou moyenneur, en donnant plus de poids aux pixels centraux.             |
-| **Filtrage (Convolution)**  | Détection de Contours (Sobel)           | Met en évidence les contours de l'image en calculant le gradient d'intensité.                                                          |
-| **Filtrage (Convolution)**  | Rehaussement de Netteté (Sharpen)       | Augmente la netteté perçue de l'image en assombrissant les bords des contours, les rendant plus "tranchés".                            |
-| **Filtrage (Non-linéaire)** | Filtre Médian                           | Supprime efficacement le bruit "poivre et sel" en préservant les contours, en remplaçant chaque pixel par la médiane de son voisinage. |
-| **Domaine Fréquentiel**     | Visualisation du Spectre de Fourier     | Calcule la Transformée de Fourier 2D et génère une image de son spectre de magnitude, avec les basses fréquences centrées.             |
-| **Domaine Fréquentiel**     | Filtre Passe-Bas Fréquentiel            | Applique un flou puissant en supprimant les hautes fréquences de l'image via une multiplication dans le domaine de Fourier.            |
-| **Domaine Fréquentiel**     | Filtre Passe-Haut Fréquentiel           | Isole les contours et les détails de l'image en supprimant les basses fréquences.                                                      |
-
-### 🚀 Fonctionnalités Prévues
-
-| Catégorie                        | Fonctionnalité              | Description                                                                                                      |
-| -------------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Transformations Géométriques** | Redimensionnement (Scaling) | Changer la taille de l'image en utilisant des algorithmes d'interpolation (Plus Proche Voisin, Bilinéaire).      |
-| **Transformations Géométriques** | Rotation                    | Faire pivoter une image de 90, 180 ou 270 degrés.                                                                |
-| **Transformations Géométriques** | Symétrie (Flip)             | Appliquer un effet miroir horizontal ou vertical à l'image.                                                      |
-| **Expérience Utilisateur**       | Assistant Interactif        | Un mode menu en console pour guider les utilisateurs à travers les fonctionnalités sans mémoriser les commandes. |
-| **I/O**                          | Support du format BMP       | Ajouter la capacité de lire et écrire des images au format BMP 24-bits non compressé.                            |
-| **Qualité**                      | Tests Unitaires Automatisés | Mise en place d'un framework de tests pour valider le comportement des fonctions et éviter les régressions.      |
+| Catégorie           | Fonctionnalité               | Description                                                                                 |
+| ------------------- | ---------------------------- | ------------------------------------------------------------------------------------------- |
+| **I/O**             | Lecture/Écriture PPM/PGM     | Gestion native des formats Netpbm (P5/P6).                                                  |
+| **Analyse**         | Statistiques & Histogramme   | Calcul de luminance, contraste et génération d'image d'histogramme.                         |
+| **Transformations** | Correction Radiométrique     | Ajustement linéaire (gain/biais), saturation, correction Gamma, Négatif.                    |
+| **Géométrie**       | Redimensionnement & Rotation | Zoom avec interpolation (Voisin/Bilinéaire) et rotation spatiale.                           |
+| **Filtrage**        | Lissage & Débruitage         | Flou Moyenneur, Gaussien et Filtre Médian (non-linéaire).                                   |
+| **Fréquentiel**     | FFT 2D                       | Analyse spectrale, filtres passe-bas/passe-haut et suppression de bruit périodique (Notch). |
+| **Contours**        | Détection & Hough            | Filtres de Sobel, Prewitt, Roberts, Laplacien et Transformée de Hough pour les lignes.      |
+| **Segmentation**    | Seuillage & Régions          | Seuillage manuel, automatique (Otsu) et Croissance de régions (Region Growing).             |
+| **Morphologie**     | Opérateurs Binaires          | Érosion, Dilatation, Ouverture, Fermeture, Gradient morphologique.                          |
+| **Multi-images**    | Arithmétique & Logique       | Addition, Soustraction, ET, OU, XOR pour le masquage et la comparaison.                     |
 
 ---
 
 ## 🛠️ Compilation et Installation
 
-Ce projet utilise `make` pour la compilation. Assurez-vous d'avoir `gcc` et `make` installés sur votre système.
+Ce projet utilise `make`. Assurez-vous d'avoir `gcc` installé.
 
 1.  **Clonez le dépôt :**
 
@@ -81,182 +60,143 @@ Ce projet utilise `make` pour la compilation. Assurez-vous d'avoir `gcc` et `mak
     ```
 
 2.  **Compilez le projet :**
-    Exécutez `make` à la racine du projet.
 
     ```bash
     make
     ```
 
-    Cette commande va compiler tous les fichiers source `.c` du répertoire `src/` et placer l'exécutable final dans `bin/imgproc`.
+    L'exécutable est généré dans `bin/imgproc`.
 
-3.  **Nettoyer le projet :**
-    Pour supprimer tous les fichiers générés (objets et exécutable), utilisez la commande :
+3.  **Nettoyage :**
     ```bash
     make clean
     ```
 
+---
+
 ## 🖥️ Guide d'Utilisation
 
-### Syntaxe Générale
-
-La structure d'une commande `imgproc` est la suivante :
+**Syntaxe Générale :**
 
 ```bash
-./bin/imgproc --input <fichier_entree> --output <fichier_sortie> [options...]
+./bin/imgproc --input <entrée.pgm> --output <sortie.pgm> [options...]
 ```
 
-- `--input <path>` : **(Obligatoire)** Spécifie le chemin vers l'image à traiter.
-- `--output <path>` : **(Obligatoire)** Spécifie le chemin où sauvegarder l'image résultante.
+### 1. Analyse d'Image
 
-Les opérations sont appliquées dans un ordre logique prédéfini, quel que soit l'ordre des options dans la commande.
-
-### Analyse d'Image
-
-Ces options affichent des informations dans la console ou génèrent des fichiers d'analyse.
-
-- `--luminance` : Calcule et affiche la luminance moyenne de l'image.
-
+- `--luminance` : Affiche la luminance moyenne.
+- `--contrast` : Affiche le contraste global.
+- `--histogram <fichier.pgm>` : Génère une image de l'histogramme.
   ```bash
-  ./bin/imgproc --input image.pgm --output out.pgm --luminance
+  ./bin/imgproc --input image.pgm --output out.pgm --histogram hist.pgm
   ```
 
-- `--contrast` : Calcule et affiche le contraste de l'image.
+### 2. Transformations Ponctuelles
 
+- `--linear <gain> <biais>` : Applique $I' = a \cdot I + b$.
+- `--saturate <min> <max>` : Étire la dynamique sur la plage [min, max].
+- `--gamma <valeur>` : Correction Gamma ($I^\gamma$). `<1` éclaircit, `>1` assombrit.
+- `--invert` : Négatif de l'image.
+- `--equalize` : Égalisation d'histogramme globale.
+- `--equalize-local <taille>` : Égalisation locale (fenêtre glissante).
   ```bash
-  ./bin/imgproc --input image.pgm --output out.pgm --contrast
+  ./bin/imgproc --input sombre.pgm --output claire.pgm --equalize
   ```
 
-- `--histogram <path_hist.pgm>` : Calcule l'histogramme de l'image et le sauvegarde sous forme d'une image PGM.
+### 3. Géométrie et Interpolation
+
+- `--resize <w> <h>` : Redimensionne l'image (Plus proche voisin par défaut).
+- `--bilinear` : Active l'interpolation bilinéaire (à combiner avec `--resize`).
+- `--rotate <angle>` : Rotation de l'image (en degrés).
   ```bash
-  ./bin/imgproc --input photo.pgm --output out.pgm --histogram histogramme.pgm
+  ./bin/imgproc --input in.pgm --output out.pgm --resize 1024 1024 --bilinear --rotate 45
   ```
 
-### Transformations Ponctuelles (Correction des couleurs et du contraste)
+### 4. Filtrage Spatial (Convolution)
 
-- `--linear <gain> <biais>` : Applique une transformation linéaire `I' = gain * I + biais`. Utile pour ajuster manuellement la luminosité et le contraste.
-
+- `--blur <taille>` : Flou moyenneur.
+- `--gaussian-blur <taille>` : Flou Gaussien (plus naturel).
+- `--median <taille>` : Filtre médian (suppression bruit poivre/sel).
+- `--sharpen` : Rehaussement de netteté.
   ```bash
-  # Augmente le contraste (gain > 1) et assombrit légèrement l'image (biais < 0)
-  ./bin/imgproc --input image.pgm --output out.pgm --linear 1.5 -20
+  ./bin/imgproc --input bruitee.pgm --output nette.pgm --median 3 --sharpen
   ```
 
-- `--saturate <min> <max>` : Étire les niveaux de gris compris entre `<min>` et `<max>` sur toute la plage 0-255. Les valeurs en dehors de cet intervalle sont "saturées" (mises à 0 ou 255).
+### 5. Domaine Fréquentiel (FFT)
+
+- `--fft-spectrum <fichier>` : Sauvegarde le spectre de magnitude.
+- `--fft-lowpass <rayon>` : Filtre passe-bas (flou).
+- `--fft-highpass <rayon>` : Filtre passe-haut (contours).
+- `--fft-emphasis <r> <k_low> <k_high>` : Rehaussement spectral (High Frequency Emphasis).
+- `--auto-notch <rayon>` : Suppression automatique du bruit périodique.
   ```bash
-  # Se concentre sur les niveaux de gris entre 50 et 200 pour maximiser le contraste
-  ./bin/imgproc --input image.pgm --output out.pgm --saturate 50 200
+  ./bin/imgproc --input in.pgm --output out.pgm --fft-emphasis 20 1.0 2.0
   ```
 
-### Filtrage par Convolution (Flou, Netteté, Détection de contours)
+### 6. Détection de Contours et Hough
 
-- `--blur <taille>` : Applique un flou moyenneur. `<taille>` doit être un entier impair (ex: 3, 5, 9). Plus la taille est grande, plus le flou est prononcé.
-
+- `--sobel` / `--prewitt` / `--roberts` : Détection de contours par gradient.
+- `--laplacian` : Détection par dérivée seconde.
+- `--hough <seuil>` : Transformée de Hough pour détecter les lignes (nécessite une image binaire en entrée, ex: après Sobel + Threshold).
   ```bash
-  ./bin/imgproc --input image.pgm --output out.pgm --blur 5
+  # Pipeline complet : Contours -> Binarisation -> Lignes
+  ./bin/imgproc --input batiment.pgm --output lignes.pgm --sobel --threshold 100 --hough 80
   ```
 
-- `--gaussian-blur <taille>` : Applique un flou Gaussien, plus doux et de meilleure qualité. `<taille>` doit être un entier impair.
+### 7. Segmentation
 
+- `--threshold <valeur>` : Seuillage manuel simple.
+- `--otsu` : Seuillage automatique (Méthode d'Otsu).
+- `--region-growing <x> <y> <tolérance>` : Segmentation par croissance de région depuis un germe.
   ```bash
-  ./bin/imgproc --input image.pgm --output out.pgm --gaussian-blur 5
+  # Segmentation automatique
+  ./bin/imgproc --input in.pgm --output seg.pgm --otsu
   ```
 
-- `--sobel` : Applique le filtre de Sobel pour détecter les contours. Le résultat est une image en noir et blanc où les contours sont mis en évidence.
+### 8. Morphologie Mathématique
 
+Opérations sur images binaires (idéalement après segmentation).
+
+- `--erode <taille>` / `--dilate <taille>` : Érosion / Dilatation.
+- `--opening <taille>` : Ouverture (suppression bruit blanc).
+- `--closing <taille>` : Fermeture (comblement trous noirs).
+- `--morph-gradient <taille>` : Gradient morphologique (contours).
   ```bash
-  ./bin/imgproc --input batiment.pgm --output contours.pgm --sobel
+  # Nettoyer une segmentation
+  ./bin/imgproc --input seg.pgm --output clean.pgm --opening 3
   ```
 
-- `--sharpen` : Applique un filtre de rehaussement de netteté. Il rend les détails et les textures plus "tranchés".
+### 9. Opérations Multi-images
+
+Nécessite une seconde image via l'argument.
+
+- **Arithmétique :** `--add <img2>`, `--sub <img2>`
+- **Logique :** `--and <img2>`, `--or <img2>`, `--xor <img2>`
   ```bash
-  ./bin/imgproc --input portrait.pgm --output portrait_net.pgm --sharpen
+  # Masquage : Image & Masque
+  ./bin/imgproc --input lena.pgm --output masked.pgm --and masque.pgm
   ```
-- `--median <taille>` : Applique un filtre médian, très efficace contre le bruit de type "poivre et sel". `<taille>` doit être un entier impair (typiquement 3 ou 5).
-  ```bash
-  ./bin/imgproc --input image_bruitee.pgm --output image_propre.pgm --median 3
-  ```
-
-### Analyse dans le Domaine Fréquentiel
-
-- `--fft-spectrum <path_spectrum.pgm>` : Calcule la Transformée de Fourier de l'image et sauvegarde une représentation visuelle de son spectre dans un fichier PGM.
-  ```bash
-  # Générer le spectre de Fourier de l'image
-  ./bin/imgproc --input image.pgm --output out.pgm --fft-spectrum spectre.pgm
-  ```
-- `--fft-lowpass <rayon>` : Applique un filtre passe-bas idéal (flou). `<rayon>` définit la taille des basses fréquences à conserver. Une petite valeur (ex: 20) produit un flou très fort.
-
-  ```bash
-  ./bin/imgproc --input image.pgm --output flou.pgm --fft-lowpass 30
-  ```
-
-- `--fft-highpass <rayon>` : Applique un filtre passe-haut idéal (détection de contours). `<rayon>` définit la taille des basses fréquences à supprimer. Une petite valeur (ex: 10) conserve beaucoup de détails.
-  ```bash
-  ./bin/imgproc --input image.pgm --output contours.pgm --fft-highpass 15
-  ```
-
-### Amélioration d'Histogramme
-
-- `--equalize` : Applique une égalisation d'histogramme. C'est la méthode la plus puissante pour corriger automatiquement les images sous-exposées, sur-exposées ou ternes.
-  ```bash
-  ./bin/imgproc --input photo_sombre.pgm --output photo_corrigee.pgm --equalize
-  ```
-
-### Chaînage des Opérations
-
-Vous pouvez combiner plusieurs opérations en une seule commande. Elles seront appliquées dans un ordre logique (par exemple, le flou avant la détection de contours).
-
-```bash
-# Appliquer un léger flou Gaussien pour réduire le bruit, puis détecter les contours avec Sobel
-./bin/imgproc --input image.pgm --output out.pgm --gaussian-blur 3 --sobel
-
-# Augmenter la netteté, puis corriger le contraste global
-./bin/imgproc --input image.pgm --output out.pgm --sharpen --equalize
-```
 
 ---
 
 ## 🏗️ Architecture du Projet
 
-Le projet est structuré de manière modulaire pour garantir la séparation des responsabilités, la testabilité et l'extensibilité.
+Le projet est structuré de manière modulaire :
 
 ```
 imgproc/
 │
-├── bin/              # Contient l'exécutable final
-├── build/            # Contient les fichiers objets (.o) intermédiaires
-├── include/          # Contient les fichiers d'en-tête publics (.h)
-│   ├── analysis/     # Headers pour l'analyse (histogramme, stats)
-│   ├── cli/          # Header pour le parseur d'arguments
-│   ├── core/         # Header pour les structures de données (Image)
-│   ├── filters/      # Headers pour les filtres (convolution, etc.)
-│   └── io/           # Headers pour la lecture/écriture de fichiers
-├── src/              # Contient les fichiers d'implémentation (.c)
-│   ├── analysis/
-│   ├── cli/
-│   ├── core/
-│   ├── filters/
-│   ├── io/
-│   └── main.c        # Point d'entrée du programme
-├── tests/            # (Futur) Scripts et données de test
-├── Makefile          # Gère la compilation du projet
-└── README.md         # Cette documentation
+├── bin/              # Exécutable final
+├── build/            # Fichiers objets (.o)
+├── include/          # En-têtes (.h)
+│   ├── analysis/     # Stats, Histogramme, Hough, Segmentation
+│   ├── cli/          # Parsing des arguments
+│   ├── core/         # Structure Image
+│   ├── filters/      # Convolution, Arithmétique, Pointwise, Morpho
+│   ├── geometry/     # Redimensionnement, Interpolation
+│   ├── fft/          # Fourier Transform
+│   └── io/           # Lecture/Écriture PNM
+├── src/              # Code source (.c)
+├── Makefile          # Script de compilation
+└── README.md         # Documentation
 ```
-
-Chaque module est conçu pour être aussi indépendant que possible :
-
-- Le module `core` ne connaît rien aux formats de fichiers.
-- Le module `filters` opère sur la structure `Image` sans se soucier de la manière dont elle a été chargée.
-- Le module `cli` orchestre les appels aux autres modules en fonction des commandes de l'utilisateur.
-
----
-
-## 🤝 Comment Contribuer
-
-Les contributions sont les bienvenues ! Si vous souhaitez ajouter une fonctionnalité ou corriger un bug, veuillez suivre ces étapes :
-
-1.  **Forkez** le projet.
-2.  Créez une nouvelle branche pour votre fonctionnalité (`git checkout -b feature/NomDeLaFonctionnalite`).
-3.  Commitez vos changements (`git commit -m 'Ajout de la fonctionnalité X'`).
-4.  Pushez vers votre branche (`git push origin feature/NomDeLaFonctionnalite`).
-5.  Ouvrez une **Pull Request**.
-
-Veuillez respecter le style de code existant et documenter toute nouvelle fonction publique.

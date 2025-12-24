@@ -15,6 +15,43 @@ static int compare_uint8(const void *a, const void *b) {
     return 0;
 }
 
+// --- Fonction interne pour factoriser le calcul de gradient ---
+static Image* _apply_gradient_filter(const Image *src, const Kernel *kernel_x, const Kernel *kernel_y) {
+    // 1. Appliquer les deux convolutions pour obtenir les gradients Gx et Gy
+    Image *grad_x = apply_convolution(src, kernel_x);
+    Image *grad_y = apply_convolution(src, kernel_y);
+
+    if (!grad_x || !grad_y) {
+        freeImage(grad_x);
+        freeImage(grad_y);
+        return NULL;
+    }
+
+    // 2. Créer l'image pour le résultat final (la magnitude)
+    Image *result = createImage(src->width, src->height, src->channels);
+    if (!result) {
+        freeImage(grad_x);
+        freeImage(grad_y);
+        return NULL;
+    }
+
+    // 3. Combiner les gradients pour calculer la magnitude
+    long total_pixels = (long)src->width * src->height * src->channels;
+    for (long i = 0; i < total_pixels; i++) {
+        // Approximation rapide et efficace de la magnitude: |Gx| + |Gy|
+        // Notre apply_convolution borne déjà à 0, donc pas besoin de abs().
+        int magnitude = grad_x->data[i] + grad_y->data[i];
+        if (magnitude > 255) magnitude = 255;
+        result->data[i] = (uint8_t)magnitude;
+    }
+
+    // 4. Libérer la mémoire des images intermédiaires
+    freeImage(grad_x);
+    freeImage(grad_y);
+
+    return result;
+}
+
 Image *apply_box_blur(const Image *src, int kernel_size) {
     if (kernel_size % 2 == 0) {
         fprintf(stderr, "apply_box_blur: La taille du noyau doit être impaire.\n");
@@ -98,66 +135,98 @@ Image *apply_gaussian_blur(const Image *src, int kernel_size) {
     return result;
 }
 
+// Image *apply_sobel_filter(const Image *src) {
+//     // Noyau de Sobel pour les gradients horizontaux (détecte les contours verticaux)
+//     float kx_data[] = {
+//         -1, 0, 1,
+//         -2, 0, 2,
+//         -1, 0, 1
+//     };
+//     Kernel kernel_x = {3, 3, kx_data};
+
+//     // Noyau de Sobel pour les gradients verticaux (détecte les contours horizontaux)
+//     float ky_data[] = {
+//         -1, -2, -1,
+//          0,  0,  0,
+//          1,  2,  1
+//     };
+//     Kernel kernel_y = {3, 3, ky_data};
+
+//     // 1. Appliquer les deux convolutions
+//     Image *grad_x = apply_convolution(src, &kernel_x);
+//     Image *grad_y = apply_convolution(src, &kernel_y);
+
+//     if (!grad_x || !grad_y) {
+//         freeImage(grad_x); // Libère au cas où l'un des deux a réussi
+//         freeImage(grad_y);
+//         return NULL;
+//     }
+
+//     // 2. Créer une image pour le résultat final
+//     Image *result = createImage(src->width, src->height, src->channels);
+//     if (!result) {
+//         freeImage(grad_x);
+//         freeImage(grad_y);
+//         return NULL;
+//     }
+
+//     // 3. Combiner les deux gradients (magnitude)
+//     for (int i = 0; i < src->width * src->height * src->channels; i++) {
+//         // La convolution peut donner des résultats "négatifs", mais ils sont stockés 
+//         // comme des entiers. Le calcul correct nécessite une conversion.
+//         // Ici, on fait une approximation simple avec la valeur absolue.
+//         // Pour une implémentation parfaite, apply_convolution devrait retourner
+//         // des float, mais restons simples pour l'instant.
+//         float gx = grad_x->data[i];
+//         float gy = grad_y->data[i];
+        
+//         // Calcul de la magnitude : sqrt(gx^2 + gy^2)
+//         float magnitude = sqrt(gx * gx + gy * gy);
+
+//         if (magnitude > 255) magnitude = 255;
+//         result->data[i] = (uint8_t)magnitude;
+//     }
+
+//     // 4. Libérer les images intermédiaires
+//     freeImage(grad_x);
+//     freeImage(grad_y);
+
+//     return result;
+// }
 
 
 Image *apply_sobel_filter(const Image *src) {
-    // Noyau de Sobel pour les gradients horizontaux (détecte les contours verticaux)
-    float kx_data[] = {
-        -1, 0, 1,
-        -2, 0, 2,
-        -1, 0, 1
-    };
+    float kx_data[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
+    float ky_data[] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
     Kernel kernel_x = {3, 3, kx_data};
-
-    // Noyau de Sobel pour les gradients verticaux (détecte les contours horizontaux)
-    float ky_data[] = {
-        -1, -2, -1,
-         0,  0,  0,
-         1,  2,  1
-    };
     Kernel kernel_y = {3, 3, ky_data};
-
-    // 1. Appliquer les deux convolutions
-    Image *grad_x = apply_convolution(src, &kernel_x);
-    Image *grad_y = apply_convolution(src, &kernel_y);
-
-    if (!grad_x || !grad_y) {
-        freeImage(grad_x); // Libère au cas où l'un des deux a réussi
-        freeImage(grad_y);
-        return NULL;
-    }
-
-    // 2. Créer une image pour le résultat final
-    Image *result = createImage(src->width, src->height, src->channels);
-    if (!result) {
-        freeImage(grad_x);
-        freeImage(grad_y);
-        return NULL;
-    }
-
-    // 3. Combiner les deux gradients (magnitude)
-    for (int i = 0; i < src->width * src->height * src->channels; i++) {
-        // La convolution peut donner des résultats "négatifs", mais ils sont stockés 
-        // comme des entiers. Le calcul correct nécessite une conversion.
-        // Ici, on fait une approximation simple avec la valeur absolue.
-        // Pour une implémentation parfaite, apply_convolution devrait retourner
-        // des float, mais restons simples pour l'instant.
-        float gx = grad_x->data[i];
-        float gy = grad_y->data[i];
-        
-        // Calcul de la magnitude : sqrt(gx^2 + gy^2)
-        float magnitude = sqrt(gx * gx + gy * gy);
-
-        if (magnitude > 255) magnitude = 255;
-        result->data[i] = (uint8_t)magnitude;
-    }
-
-    // 4. Libérer les images intermédiaires
-    freeImage(grad_x);
-    freeImage(grad_y);
-
-    return result;
+    return _apply_gradient_filter(src, &kernel_x, &kernel_y);
 }
+
+Image *apply_prewitt_filter(const Image *src) {
+    float kx_data[] = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
+    float ky_data[] = {-1, -1, -1, 0, 0, 0, 1, 1, 1};
+    Kernel kernel_x = {3, 3, kx_data};
+    Kernel kernel_y = {3, 3, ky_data};
+    return _apply_gradient_filter(src, &kernel_x, &kernel_y);
+}
+
+Image *apply_roberts_filter(const Image *src) {
+    // Le noyau de Roberts est 2x2. On l'applique comme un noyau 3x3 avec des zéros.
+    float kx_data[] = {1, 0, 0, 0, -1, 0, 0, 0, 0};
+    float ky_data[] = {0, 1, 0, -1, 0, 0, 0, 0, 0};
+    Kernel kernel_x = {3, 3, kx_data};
+    Kernel kernel_y = {3, 3, ky_data};
+    return _apply_gradient_filter(src, &kernel_x, &kernel_y);
+}
+
+
+
+
+
+
+
+
 
 
 // ... à la fin de src/filters/predefined_filters.c ...
@@ -275,3 +344,101 @@ Image *apply_median_filter(const Image *src, int kernel_size) {
     return dest;
 }
 
+
+
+Image *apply_min_filter(const Image *src, int kernel_size) {
+    if (!src || !src->data || src->channels != 1) return NULL;
+    if (kernel_size % 2 == 0) return NULL;
+
+    Image *dest = createImage(src->width, src->height, src->channels);
+    if (!dest) return NULL;
+
+    int kernel_center = kernel_size / 2;
+
+    for (int y = 0; y < src->height; y++) {
+        for (int x = 0; x < src->width; x++) {
+            
+            uint8_t min_val = 255; // On commence avec la valeur max possible
+
+            // Parcourir le voisinage
+            for (int ky = 0; ky < kernel_size; ky++) {
+                for (int kx = 0; kx < kernel_size; kx++) {
+                    int ix = x + (kx - kernel_center);
+                    int iy = y + (ky - kernel_center);
+
+                    // Gestion des bords (Clamp)
+                    if (ix < 0) ix = 0;
+                    if (ix >= src->width) ix = src->width - 1;
+                    if (iy < 0) iy = 0;
+                    if (iy >= src->height) iy = src->height - 1;
+
+                    uint8_t val = src->data[iy * src->width + ix];
+                    if (val < min_val) {
+                        min_val = val;
+                    }
+                }
+            }
+            dest->data[y * src->width + x] = min_val;
+        }
+    }
+    printf("Filtre Min (taille %d) appliqué.\n", kernel_size);
+    return dest;
+}
+
+Image *apply_max_filter(const Image *src, int kernel_size) {
+    if (!src || !src->data || src->channels != 1) return NULL;
+    if (kernel_size % 2 == 0) return NULL;
+
+    Image *dest = createImage(src->width, src->height, src->channels);
+    if (!dest) return NULL;
+
+    int kernel_center = kernel_size / 2;
+
+    for (int y = 0; y < src->height; y++) {
+        for (int x = 0; x < src->width; x++) {
+            
+            uint8_t max_val = 0; // On commence avec la valeur min possible
+
+            // Parcourir le voisinage
+            for (int ky = 0; ky < kernel_size; ky++) {
+                for (int kx = 0; kx < kernel_size; kx++) {
+                    int ix = x + (kx - kernel_center);
+                    int iy = y + (ky - kernel_center);
+
+                    // Gestion des bords (Clamp)
+                    if (ix < 0) ix = 0;
+                    if (ix >= src->width) ix = src->width - 1;
+                    if (iy < 0) iy = 0;
+                    if (iy >= src->height) iy = src->height - 1;
+
+                    uint8_t val = src->data[iy * src->width + ix];
+                    if (val > max_val) {
+                        max_val = val;
+                    }
+                }
+            }
+            dest->data[y * src->width + x] = max_val;
+        }
+    }
+    printf("Filtre Max (taille %d) appliqué.\n", kernel_size);
+    return dest;
+}
+
+Image *apply_laplacian_filter(const Image *src) {
+    // Noyau Laplacien (Slide 25)
+    //  0  1  0
+    //  1 -4  1
+    //  0  1  0
+    float k_data[] = {
+        0,  1, 0,
+        1, -4, 1,
+        0,  1, 0
+    };
+    Kernel kernel = {3, 3, k_data};
+
+    // Note : apply_convolution gère le clamping (les valeurs négatives deviennent 0).
+    // Pour un Laplacien parfait, on devrait garder les valeurs absolues ou ajouter un offset (128),
+    // mais pour une détection simple "noir/blanc", le clamping standard suffit souvent
+    // à montrer les transitions les plus fortes.
+    return apply_convolution(src, &kernel);
+}

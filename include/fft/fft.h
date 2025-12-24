@@ -4,6 +4,13 @@
 #include "core/image.h"
 #include "fft/complex.h"
 
+// Structure pour un seul filtre notch
+typedef struct {
+    int u;
+    int v;
+    int radius;
+} NotchFilter;
+
 /**
  * @brief Calcule la Transformée de Fourier Rapide (FFT) 2D d'une image.
  *
@@ -80,5 +87,37 @@ void fft_lowpass_filter(Complex **fft_data, int width, int height, int radius);
 void fft_highpass_filter(Complex **fft_data, int width, int height, int radius);
 
 
+void fft_notch_filter(Complex **fft_data, int width, int height, int u, int v, int radius);
+
+/**
+ * @brief Applique un filtre coupe-bande automatique pour supprimer le bruit périodique.
+ *
+ * Analyse le spectre pour détecter les pics de bruit (points brillants isolés)
+ * et applique automatiquement des filtres notch pour les supprimer.
+ *
+ * @param fft_data La matrice de nombres complexes (sera modifiée en place).
+ * @param width La largeur de la matrice.
+ * @param height La hauteur de la matrice.
+ * @param threshold_factor Facteur de seuil. Un pic est considéré comme du bruit s'il est
+ *                         'threshold_factor' fois plus brillant que la médiane du spectre.
+ *                         Une valeur typique est 10.0.
+ * @param radius Le rayon des filtres notch à appliquer.
+ * @return Le nombre de paires de pics de bruit détectées et supprimées.
+ */
+int fft_auto_notch_filter(Complex **fft_data, int width, int height, double threshold_factor, int radius);
+
+
+/**
+ * @brief Filtre de rehaussement (High Frequency Emphasis).
+ * H(u,v) = k_high (si > radius) else k_low.
+ * 
+ * @param fft_data Données fréquentielles.
+ * @param width Largeur.
+ * @param height Hauteur.
+ * @param radius Rayon de coupure.
+ * @param k_low Facteur pour les basses fréquences (ex: 1.0 pour garder l'original).
+ * @param k_high Facteur pour les hautes fréquences (ex: 2.0 pour amplifier les bords).
+ */
+void fft_emphasis_filter(Complex **fft_data, int width, int height, int radius, double k_low, double k_high);
 
 #endif // FFT_H

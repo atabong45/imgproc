@@ -25,4 +25,12 @@ void calculate_histogram(const Image *img, int *histogram);
  */
 Image *create_histogram_image(const int *histogram, int width, int height);
 
+/**
+ * @brief Calcule le seuil optimal selon la méthode d'Otsu.
+ * @param img Image en niveaux de gris.
+ * @return La valeur du seuil (0-255).
+ */
+int calculate_otsu_threshold(const Image *img);
+
+
 #endif // HISTOGRAM_H

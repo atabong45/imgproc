@@ -53,4 +53,49 @@ Image *apply_sharpen_filter(const Image *src);
  */
 Image *apply_median_filter(const Image *src, int kernel_size);
 
+/**
+ * @brief Applique le filtre de Prewitt pour la détection de contours.
+ *
+ * @param src L'image source.
+ * @return Une nouvelle image montrant les contours, ou NULL en cas d'erreur.
+ */
+Image *apply_prewitt_filter(const Image *src);
+
+/**
+ * @brief Applique le filtre de Roberts pour la détection de contours.
+ *
+ * @param src L'image source.
+ * @return Une nouvelle image montrant les contours, ou NULL en cas d'erreur.
+ */
+Image *apply_roberts_filter(const Image *src);
+
+/**
+ * @brief Applique un filtre Min (Érosion) à une image.
+ * Remplace chaque pixel par la valeur minimale de son voisinage.
+ * Fait grossir les zones sombres.
+ *
+ * @param src L'image source.
+ * @param kernel_size Taille du noyau (ex: 3 pour 3x3).
+ * @return Une nouvelle image filtrée.
+ */
+Image *apply_min_filter(const Image *src, int kernel_size);
+
+/**
+ * @brief Applique un filtre Max (Dilatation) à une image.
+ * Remplace chaque pixel par la valeur maximale de son voisinage.
+ * Fait grossir les zones claires.
+ *
+ * @param src L'image source.
+ * @param kernel_size Taille du noyau (ex: 3 pour 3x3).
+ * @return Une nouvelle image filtrée.
+ */
+Image *apply_max_filter(const Image *src, int kernel_size);
+
+/**
+ * @brief Applique un filtre Laplacien pour la détection de contours (2ème dérivée).
+ * @param src Image source.
+ * @return Image des contours (bords clairs sur fond sombre).
+ */
+Image *apply_laplacian_filter(const Image *src);
+
 #endif // PREDEFINED_FILTERS_H

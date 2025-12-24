@@ -14,4 +14,12 @@
  */
 Image *equalize_histogram(const Image *src);
 
+/**
+ * @brief Applique une égalisation locale d'histogramme.
+ * @param src Image source.
+ * @param window_size Taille de la fenêtre locale (ex: 7, 15, 31).
+ * @return Nouvelle image traitée.
+ */
+Image *equalize_histogram_local(const Image *src, int window_size);
+
 #endif // HISTOGRAM_EQUALIZATION_H

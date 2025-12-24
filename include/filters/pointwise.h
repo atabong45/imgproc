@@ -27,4 +27,27 @@ void linear_transform(Image *img, double a, double b);
  */
 void saturated_transform(Image *img, int min_in, int max_in);
 
+
+/**
+ * @brief Applique un seuillage binaire à une image.
+ *
+ * Tous les pixels avec une valeur inférieure au seuil sont mis à 0 (noir),
+ * les autres sont mis à 255 (blanc). L'opération est faite en place.
+ *
+ * @param img L'image à modifier.
+ * @param threshold La valeur de seuil (entre 0 et 255).
+ */
+void apply_threshold(Image *img, uint8_t threshold);
+
+/**
+ * @brief Applique une correction gamma à l'image.
+ * I' = 255 * (I / 255)^gamma
+ * @param img L'image à modifier.
+ * @param gamma Le facteur gamma (ex: 0.5 pour éclaircir, 2.2 pour assombrir/corriger écran).
+ */
+void apply_gamma_correction(Image *img, double gamma);
+
+// Inverse les couleurs de l'image (Négatif).
+void apply_invert(Image *img);
+
 #endif // POINTWISE_H

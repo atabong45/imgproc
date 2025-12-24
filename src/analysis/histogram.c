@@ -84,3 +84,52 @@ Image *create_histogram_image(const int *histogram, int width, int height) {
     printf("Image de l'histogramme générée avec succès.\n");
     return hist_img;
 }
+
+#include <math.h>
+
+int calculate_otsu_threshold(const Image *img) {
+    if (!img) return -1;
+
+    // 1. Calcul de l'histogramme
+    int hist[256] = {0};
+    calculate_histogram(img, hist);
+
+    long total_pixels = img->width * img->height;
+    
+    double sum = 0;
+    for (int i = 0; i < 256; i++) sum += i * hist[i];
+
+    double sumB = 0;
+    long wB = 0;
+    long wF = 0;
+
+    double varMax = 0;
+    int threshold = 0;
+
+    // 2. Parcourir tous les seuils possibles
+    for (int t = 0; t < 256; t++) {
+        wB += hist[t];               // Poids Background
+        if (wB == 0) continue;
+
+        wF = total_pixels - wB;      // Poids Foreground
+        if (wF == 0) break;
+
+        sumB += (double)(t * hist[t]);
+
+        double mB = sumB / wB;            // Moyenne Background
+        double mF = (sum - sumB) / wF;    // Moyenne Foreground
+
+        // Variance Inter-classe (formule équivalente à minimiser l'intra-classe)
+        // Sigma^2 = wB * wF * (mB - mF)^2
+        double varBetween = (double)wB * (double)wF * (mB - mF) * (mB - mF);
+
+        // On cherche le maximum
+        if (varBetween > varMax) {
+            varMax = varBetween;
+            threshold = t;
+        }
+    }
+    
+    printf("Seuil optimal d'Otsu calculé : %d\n", threshold);
+    return threshold;
+}
