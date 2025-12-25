@@ -55,7 +55,7 @@ Ce projet utilise `make`. Assurez-vous d'avoir `gcc` installé.
 1.  **Clonez le dépôt :**
 
     ```bash
-    git clone https://votre-url-de-depot/imgproc.git
+    git clone https://github.com/atabong45/imgproc.git
     cd imgproc
     ```
 
